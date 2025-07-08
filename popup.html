@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            width: 300px;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #36393f;
+            color: #dcddde;
+        }
+        
+        h1 {
+            font-size: 18px;
+            margin: 0 0 20px 0;
+            color: #ffffff;
+            text-align: center;
+        }
+        
+        .info {
+            background-color: #2f3136;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #5865F2;
+        }
+        
+        .info h3 {
+            margin: 0 0 10px 0;
+            color: #5865F2;
+            font-size: 14px;
+        }
+        
+        .info p {
+            margin: 5px 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .button {
+            background-color: #5865F2;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: background-color 0.2s;
+        }
+        
+        .button:hover {
+            background-color: #4752C4;
+        }
+        
+        .button:disabled {
+            background-color: #4f545c;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+            color: #b9bbbe;
+        }
+        
+        .warning {
+            background-color: #faa61a;
+            color: #2f3136;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Discord Image Downloader</h1>
+    
+    <div class="info">
+        <h3>使用方法</h3>
+        <p>1. Discordのチャンネルを開きます</p>
+        <p>2. 「メディアをダウンロード」ボタンをクリックします</p>
+        <p>3. 確認ダイアログで「OK」をクリックします</p>
+    </div>
+    
+    <div id="warning" class="warning" style="display: none;">
+        discord.comでのみ利用可能です
+    </div>
+    
+    <button id="downloadBtn" class="button">メディアをダウンロード</button>
+    
+    <div id="status" class="status">
+        現在のチャンネルのメディア数: <span id="imageCount">-</span>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>

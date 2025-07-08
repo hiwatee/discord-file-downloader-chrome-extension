@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Discord Image Downloader",
+  "version": "1.0",
+  "description": "現在選択中のDiscordチャンネルの画像をすべてダウンロードします",
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://discord.com/*",
+    "https://cdn.discordapp.com/*",
+    "https://media.discordapp.net/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://discord.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Discord Image Downloader"
+  }
+}
