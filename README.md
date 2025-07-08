@@ -50,3 +50,58 @@
 ## 開発
 
 この拡張機能は Manifest V3 で開発されています。
+
+---
+
+# Discord Image Downloader Chrome Extension (English)
+
+A Chrome extension that downloads all images from the currently selected Discord channel.
+
+## Features
+
+- Automatically detects images in the currently displayed Discord channel
+- Download all images with a single click
+- Display image count on the extension badge
+- Automatic duplicate image removal
+- Safe filename saving
+
+## Installation
+
+1. Clone or download this repository
+2. Open `chrome://extensions/` in Chrome
+3. Enable "Developer mode" in the top right
+4. Click "Load unpacked"
+5. Select this project folder
+
+## Usage
+
+1. Open Discord (https://discord.com)
+2. Navigate to the channel with images you want to download
+3. Click the extension icon
+4. Click the "Download Images" button
+5. Click "OK" in the confirmation dialog
+
+## Supported Image Formats
+
+- PNG
+- JPG/JPEG
+- GIF
+- WebP
+
+## Notes
+
+- Only works on Discord.com
+- Downloads may take time when there are many images
+- Please allow multiple file downloads in your browser settings when downloading many images at once
+
+## File Structure
+
+- `manifest.json` - Extension configuration
+- `content.js` - Script that runs on Discord pages
+- `background.js` - Service worker that runs in the background
+- `popup.html` - Popup UI
+- `popup.js` - Popup behavior control
+
+## Development
+
+This extension is developed using Manifest V3.
