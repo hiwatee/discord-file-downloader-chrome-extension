@@ -1,54 +1,61 @@
+function getMessagesRoot() {
+  const selectors = [
+    '[class^="scrollerInner__"]',
+    '[class*="scrollerInner"]',
+    '[class^="chatContent-"]',
+    '[class*="chatContent"]',
+    '[class^="mainContent-"]',
+    '[class*="mainContent"]'
+  ];
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el) return el;
+  }
+  return null;
+}
+
 function findAllImages() {
   const images = [];
-  // メッセージ欄（messages）部分のみを対象にする
-  const messagesRoot = document.querySelector('[class^="scrollerInner__"]');
+  const imageMap = {}; // ファイル名→URL
+
+  const messagesRoot = getMessagesRoot();
   if (!messagesRoot) {
     console.warn('メッセージ欄が見つかりませんでした');
     return images;
   }
-  // 画像要素を検索
-  const imgElements = messagesRoot.querySelectorAll('img[src*="cdn.discordapp.com"], img[src*="media.discordapp.net"]');
-  imgElements.forEach(img => {
-    if (img.src && !img.src.includes('avatar') && !img.src.includes('emoji')) {
-      // オリジナルファイルのURLを取得
-      const originalUrl = getOriginalUrl(img.src);
-      if (!images.includes(originalUrl)) {
-        images.push(originalUrl);
-      }
+
+  const selectors = [
+    'img[src*="cdn.discordapp.com"]',
+    'img[src*="media.discordapp.net"]',
+    'a[href*="cdn.discordapp.com"]',
+    'a[href*="media.discordapp.net"]',
+    'video[src*="cdn.discordapp.com"]',
+    'video[src*="media.discordapp.net"]',
+    'source[src*="cdn.discordapp.com"]',
+    'source[src*="media.discordapp.net"]'
+  ];
+  const elements = messagesRoot.querySelectorAll(selectors.join(','));
+
+  elements.forEach(el => {
+    const url = el.src || el.href;
+    if (!url) return;
+    if (el.tagName === 'IMG' && (url.includes('avatar') || url.includes('emoji'))) return;
+    if (el.tagName === 'A' && !isMediaFile(url)) return;
+
+    // attachments/以降のパスをキーにする（クエリパラメータ除去）
+    const match = url.match(/attachments\/([^?]+)/);
+    if (!match) return;
+    const fileKey = match[1];
+
+    // cdnが優先、なければmedia
+    if (url.includes('cdn.discordapp.com')) {
+      imageMap[fileKey] = url;
+    } else if (!imageMap[fileKey]) {
+      imageMap[fileKey] = url;
     }
   });
-  // リンク要素を検索（画像と動画）
-  const linkElements = messagesRoot.querySelectorAll('a[href*="cdn.discordapp.com"], a[href*="media.discordapp.net"]');
-  linkElements.forEach(link => {
-    if (link.href && isMediaFile(link.href)) {
-      // オリジナルファイルのURLを取得
-      const originalUrl = getOriginalUrl(link.href);
-      if (!images.includes(originalUrl)) {
-        images.push(originalUrl);
-      }
-    }
-  });
-  // 動画要素を検索
-  const videoElements = messagesRoot.querySelectorAll('video[src*="cdn.discordapp.com"], video[src*="media.discordapp.net"]');
-  videoElements.forEach(video => {
-    if (video.src) {
-      const originalUrl = getOriginalUrl(video.src);
-      if (!images.includes(originalUrl)) {
-        images.push(originalUrl);
-      }
-    }
-  });
-  // source要素を検索
-  const sourceElements = messagesRoot.querySelectorAll('source[src*="cdn.discordapp.com"], source[src*="media.discordapp.net"]');
-  sourceElements.forEach(source => {
-    if (source.src) {
-      const originalUrl = getOriginalUrl(source.src);
-      if (!images.includes(originalUrl)) {
-        images.push(originalUrl);
-      }
-    }
-  });
-  
+
+  Object.values(imageMap).forEach(url => images.push(url));
   console.log('Found media files:', images);
   return images;
 }
@@ -110,7 +117,7 @@ function getCurrentChannelName() {
   return 'unknown_channel';
 }
 
-function downloadImage(imageUrl, index) {
+function downloadImage(imageUrl, index, channelName) {
   // URLから拡張子を取得（オリジナルファイル名から）
   let extension = 'jpg'; // デフォルト
   
@@ -124,8 +131,7 @@ function downloadImage(imageUrl, index) {
   
   const isVideo = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv'].includes(`.${extension.toLowerCase()}`);
   const prefix = isVideo ? 'discord_video' : 'discord_image';
-  // チャンネル名取得
-  const channelName = getCurrentChannelName();
+  // チャンネル名は引数で受け取る
   // サブフォルダ指定: [チャンネル名]/medias_xxx.jpg
   const downloadFilename = `${channelName}/${prefix}_${index}_${Date.now()}.${extension}`;
   console.log('Downloading media:', imageUrl, 'as', downloadFilename, 'type:', isVideo ? 'video' : 'image');
@@ -175,7 +181,7 @@ function downloadAllImages() {
   
   images.forEach((imageUrl, index) => {
     setTimeout(() => {
-      downloadImage(imageUrl, index + 1);
+      downloadImage(imageUrl, index + 1, channelName);
     }, index * 500);
   });
   
