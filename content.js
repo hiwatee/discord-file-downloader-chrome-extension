@@ -1,56 +1,61 @@
+function getMessagesRoot() {
+  const selectors = [
+    '[class^="scrollerInner__"]',
+    '[class*="scrollerInner"]',
+    '[class^="chatContent-"]',
+    '[class*="chatContent"]',
+    '[class^="mainContent-"]',
+    '[class*="mainContent"]'
+  ];
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el) return el;
+  }
+  return null;
+}
+
 function findAllImages() {
   const images = [];
-  
-  // 画像要素を検索
-  const imgElements = document.querySelectorAll('img[src*="cdn.discordapp.com"], img[src*="media.discordapp.net"]');
-  
-  imgElements.forEach(img => {
-    if (img.src && !img.src.includes('avatar') && !img.src.includes('emoji')) {
-      // オリジナルファイルのURLを取得
-      const originalUrl = getOriginalUrl(img.src);
-      if (!images.includes(originalUrl)) {
-        images.push(originalUrl);
-      }
+  const imageMap = {}; // ファイル名→URL
+
+  const messagesRoot = getMessagesRoot();
+  if (!messagesRoot) {
+    console.warn('メッセージ欄が見つかりませんでした');
+    return images;
+  }
+
+  const selectors = [
+    'img[src*="cdn.discordapp.com"]',
+    'img[src*="media.discordapp.net"]',
+    'a[href*="cdn.discordapp.com"]',
+    'a[href*="media.discordapp.net"]',
+    'video[src*="cdn.discordapp.com"]',
+    'video[src*="media.discordapp.net"]',
+    'source[src*="cdn.discordapp.com"]',
+    'source[src*="media.discordapp.net"]'
+  ];
+  const elements = messagesRoot.querySelectorAll(selectors.join(','));
+
+  elements.forEach(el => {
+    const url = el.src || el.href;
+    if (!url) return;
+    if (el.tagName === 'IMG' && (url.includes('avatar') || url.includes('emoji'))) return;
+    if (el.tagName === 'A' && !isMediaFile(url)) return;
+
+    // attachments/以降のパスをキーにする（クエリパラメータ除去）
+    const match = url.match(/attachments\/([^?]+)/);
+    if (!match) return;
+    const fileKey = match[1];
+
+    // cdnが優先、なければmedia
+    if (url.includes('cdn.discordapp.com')) {
+      imageMap[fileKey] = url;
+    } else if (!imageMap[fileKey]) {
+      imageMap[fileKey] = url;
     }
   });
-  
-  // リンク要素を検索（画像と動画）
-  const linkElements = document.querySelectorAll('a[href*="cdn.discordapp.com"], a[href*="media.discordapp.net"]');
-  
-  linkElements.forEach(link => {
-    if (link.href && isMediaFile(link.href)) {
-      // オリジナルファイルのURLを取得
-      const originalUrl = getOriginalUrl(link.href);
-      if (!images.includes(originalUrl)) {
-        images.push(originalUrl);
-      }
-    }
-  });
-  
-  // 動画要素を検索
-  const videoElements = document.querySelectorAll('video[src*="cdn.discordapp.com"], video[src*="media.discordapp.net"]');
-  
-  videoElements.forEach(video => {
-    if (video.src) {
-      const originalUrl = getOriginalUrl(video.src);
-      if (!images.includes(originalUrl)) {
-        images.push(originalUrl);
-      }
-    }
-  });
-  
-  // source要素を検索
-  const sourceElements = document.querySelectorAll('source[src*="cdn.discordapp.com"], source[src*="media.discordapp.net"]');
-  
-  sourceElements.forEach(source => {
-    if (source.src) {
-      const originalUrl = getOriginalUrl(source.src);
-      if (!images.includes(originalUrl)) {
-        images.push(originalUrl);
-      }
-    }
-  });
-  
+
+  Object.values(imageMap).forEach(url => images.push(url));
   console.log('Found media files:', images);
   return images;
 }
@@ -94,7 +99,25 @@ function isMediaFile(url) {
   return mediaExtensions.some(ext => filename.toLowerCase().includes(ext)) || isAttachment;
 }
 
-function downloadImage(imageUrl, index) {
+// チャンネル名を取得する関数
+function getCurrentChannelName() {
+  // サイドバーの選択中チャンネル名を取得
+  // 例: <li class="containerDefault_c69b6d selected_c69b6d" ...>
+  //      <a ...><div class="name__2ea32 ...">general</div></a>
+  const selectedLi = document.querySelector('li[class*="selected_"]');
+  if (selectedLi) {
+    // name__2ea32 などのクラスを持つdiv
+    const nameDiv = selectedLi.querySelector('div[class^="name_"]');
+    if (nameDiv && nameDiv.textContent) {
+      // ファイル名に使えない文字を除去
+      return nameDiv.textContent.replace(/[\\/:*?"<>|]/g, '_').trim();
+    }
+  }
+  // 取得できなければunknown_channel
+  return 'unknown_channel';
+}
+
+function downloadImage(imageUrl, index, channelName) {
   // URLから拡張子を取得（オリジナルファイル名から）
   let extension = 'jpg'; // デフォルト
   
@@ -108,8 +131,9 @@ function downloadImage(imageUrl, index) {
   
   const isVideo = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv'].includes(`.${extension.toLowerCase()}`);
   const prefix = isVideo ? 'discord_video' : 'discord_image';
-  const downloadFilename = `${prefix}_${index}_${Date.now()}.${extension}`;
-  
+  // チャンネル名は引数で受け取る
+  // サブフォルダ指定: [チャンネル名]/medias_xxx.jpg
+  const downloadFilename = `${channelName}/${prefix}_${index}_${Date.now()}.${extension}`;
   console.log('Downloading media:', imageUrl, 'as', downloadFilename, 'type:', isVideo ? 'video' : 'image');
   
   chrome.runtime.sendMessage({
@@ -157,7 +181,7 @@ function downloadAllImages() {
   
   images.forEach((imageUrl, index) => {
     setTimeout(() => {
-      downloadImage(imageUrl, index + 1);
+      downloadImage(imageUrl, index + 1, channelName);
     }, index * 500);
   });
   
