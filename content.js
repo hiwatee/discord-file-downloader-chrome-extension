@@ -151,6 +151,8 @@ function downloadAllImages() {
     return;
   }
   
+  const channelName = getCurrentChannelName();
+  
   const videoCount = images.filter(url => {
     // URLから拡張子を正しく取得
     const urlParts = url.split('?')[0].split('/');
